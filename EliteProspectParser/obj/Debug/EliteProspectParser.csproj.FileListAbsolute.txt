@@ -1,0 +1,26 @@
+C:\Users\User\Documents\Visual Studio 2013\Projects\EliteProspectParser\EliteProspectParser\bin\Debug\EliteProspectParser.exe.config
+C:\Users\User\Documents\Visual Studio 2013\Projects\EliteProspectParser\EliteProspectParser\obj\Debug\EliteProspectParser.Properties.Resources.resources
+C:\Users\User\Documents\Visual Studio 2013\Projects\EliteProspectParser\EliteProspectParser\obj\Debug\EliteProspectParser.csproj.GenerateResource.Cache
+C:\Users\User\Documents\Visual Studio 2013\Projects\EliteProspectParser\EliteProspectParser\bin\Debug\EliteProspectParser.exe
+C:\Users\User\Documents\Visual Studio 2013\Projects\EliteProspectParser\EliteProspectParser\bin\Debug\EliteProspectParser.pdb
+C:\Users\User\Documents\Visual Studio 2013\Projects\EliteProspectParser\EliteProspectParser\obj\Debug\EliteProspectParser.exe
+C:\Users\User\Documents\Visual Studio 2013\Projects\EliteProspectParser\EliteProspectParser\obj\Debug\EliteProspectParser.pdb
+C:\Users\User\Documents\Visual Studio 2013\Projects\EliteProspectParser\EliteProspectParser\bin\Debug\ClosedXML.dll
+C:\Users\User\Documents\Visual Studio 2013\Projects\EliteProspectParser\EliteProspectParser\bin\Debug\DocumentFormat.OpenXml.dll
+C:\Users\User\Documents\Visual Studio 2013\Projects\EliteProspectParser\EliteProspectParser\bin\Debug\HtmlAgilityPack.dll
+C:\Users\User\Documents\Visual Studio 2013\Projects\EliteProspectParser\EliteProspectParser\bin\Debug\ClosedXML.xml
+C:\Users\User\Documents\Visual Studio 2013\Projects\EliteProspectParser\EliteProspectParser\bin\Debug\HtmlAgilityPack.pdb
+C:\Users\User\Documents\Visual Studio 2013\Projects\EliteProspectParser\EliteProspectParser\bin\Debug\HtmlAgilityPack.xml
+C:\Users\User\Documents\GitHub\EliteProspectParser\EliteProspectParser\bin\Debug\EliteProspectParser.exe.config
+C:\Users\User\Documents\GitHub\EliteProspectParser\EliteProspectParser\obj\Debug\EliteProspectParser.exe
+C:\Users\User\Documents\GitHub\EliteProspectParser\EliteProspectParser\obj\Debug\EliteProspectParser.pdb
+C:\Users\User\Documents\GitHub\EliteProspectParser\EliteProspectParser\bin\Debug\EliteProspectParser.exe
+C:\Users\User\Documents\GitHub\EliteProspectParser\EliteProspectParser\bin\Debug\EliteProspectParser.pdb
+C:\Users\User\Documents\GitHub\EliteProspectParser\EliteProspectParser\bin\Debug\ClosedXML.dll
+C:\Users\User\Documents\GitHub\EliteProspectParser\EliteProspectParser\bin\Debug\DocumentFormat.OpenXml.dll
+C:\Users\User\Documents\GitHub\EliteProspectParser\EliteProspectParser\bin\Debug\HtmlAgilityPack.dll
+C:\Users\User\Documents\GitHub\EliteProspectParser\EliteProspectParser\bin\Debug\ClosedXML.xml
+C:\Users\User\Documents\GitHub\EliteProspectParser\EliteProspectParser\bin\Debug\HtmlAgilityPack.pdb
+C:\Users\User\Documents\GitHub\EliteProspectParser\EliteProspectParser\bin\Debug\HtmlAgilityPack.xml
+C:\Users\User\Documents\GitHub\EliteProspectParser\EliteProspectParser\obj\Debug\EliteProspectParser.Properties.Resources.resources
+C:\Users\User\Documents\GitHub\EliteProspectParser\EliteProspectParser\obj\Debug\EliteProspectParser.csproj.GenerateResource.Cache
