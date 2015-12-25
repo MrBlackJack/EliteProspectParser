@@ -42,6 +42,9 @@
     <Reference Include="HtmlAgilityPack">
       <HintPath>..\packages\HtmlAgilityPack.1.4.9\lib\Net45\HtmlAgilityPack.dll</HintPath>
     </Reference>
+    <Reference Include="Npgsql">
+      <HintPath>..\packages\Npgsql.3.0.4\lib\net45\Npgsql.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -54,14 +57,31 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AppSettings.cs" />
+    <Compile Include="BDSetttingsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="BDSetttingsForm.Designer.cs">
+      <DependentUpon>BDSetttingsForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="League.cs" />
     <Compile Include="MainForm_.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="MainForm_.Designer.cs">
       <DependentUpon>MainForm_.cs</DependentUpon>
     </Compile>
+    <Compile Include="Player.cs" />
+    <Compile Include="Players.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Team.cs" />
+    <EmbeddedResource Include="BDSetttingsForm.resx">
+      <DependentUpon>BDSetttingsForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MainForm_.resx">
+      <DependentUpon>MainForm_.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
