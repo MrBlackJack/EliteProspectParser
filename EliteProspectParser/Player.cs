@@ -13,7 +13,6 @@ namespace EliteProspectParser
         //Общие сведения
         public string Name { get; set; }
         public string BirthDate { get; set; }
-        public string Age { get; set; }
         public string Height { get; set; }
         public string Weight { get; set; }
         //Информация о команде

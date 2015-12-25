@@ -196,33 +196,26 @@ namespace EliteProspectParser
                                 //Обновление записей в таблице League
                                 foreach (League league in checkLeagues)
                                 {
-                                    string updateSQL = string.Format("insert into League(lg_name) " +
-                                                                     " select " +
-                                                                     "     lg " +
-                                                                     " from (select '{0}' as lg) q " +
-                                                                     " where cast(lg as varchar(50)) not in (select lg_name from League);", league.Name.Trim());
+                                    string updateSQL = string.Format("select leagues_ins('{0}');", league.Name.Trim());
 
                                     NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
                                     int result = SqlCommand.ExecuteNonQuery();
                                 }
-
-                                log_view.Items.Add("Обновление лиг прошло успешно!");
 
                                 //Обновление записей в таблице Teams
                                 foreach (Team team in PlayersObj.teams)
                                 {
-                                    string updateSQL = string.Format(" insert into Teams(tm_name, league_id) " +
-                                                                     " select " +
-                                                                     "    team, " +
-                                                                     "    league_id " +
-                                                                     "  from (select cast('{0}' as varchar(255)) as team) q " +
-                                                                     "  left join League on lg_name = '{1}' " +
-                                                                     "  where team not in (select tm_name from Teams); ", team.name.Trim(), team.league.Name.Trim());
+                                    string updateSQL = string.Format("select Teams_ins('{0}', '{1}');", team.name.Trim(), team.league.Name.Trim());
                                     NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
-                                    int result = SqlCommand.ExecuteNonQuery();
+                                    try
+                                    {
+                                        int result = SqlCommand.ExecuteNonQuery();
+                                    }
+                                    catch (Exception)
+                                    {
+                                        log_view.Items.Add("Ошибка: не удалось обновить команду " + team.name.Trim());
+                                    }
                                 }
-
-                                log_view.Items.Add("Обновление команд прошло успешно!");
                             }
 
                             //Путь к excel файлу
@@ -275,29 +268,22 @@ namespace EliteProspectParser
                                 if (ConnectionResult)
                                 {
                                     //Обновление записей в таблице Players
-                                    string updateSQL = string.Format(" insert into Players(pl_name, pl_shoot, pl_position, pl_height, pl_weight, pl_age, pl_EliteID, pl_photo) " +
-                                                                     " select " +
-                                                                     "     name, shoot, position, height, weight, age, eliteID, photo " +
-                                                                     " from ( " +
-                                                                     "        select  " +
-                                                                     "           cast('{0}' as varchar(255)) as name, " +
-                                                                     "           cast('{1}' as varchar(255)) as shoot, " +
-                                                                     "           cast('{2}' as varchar(255)) as position, " +
-                                                                     "           cast('{3}' as decimal(4,1)) as height, " +
-                                                                     "           cast('{4}' as decimal(4,1)) as weight, " +
-                                                                     "           cast('{5}' as int) as age, " +
-                                                                     "           cast('{6}' as int) as eliteID, " +
-                                                                     "           cast('{7}' as varchar(255)) as photo " +
-                                                                     "        ) q " +
-                                                                     "  where eliteID not in (select pl_EliteID from Players) ",
-                                                                     player.Name, player.Shoots, player.Position, player.Height, player.Weight, player.Age, player.EliteID, player.Photo);
+                                    string updateSQL = string.Format("select players_ins(cast('{0}' as varchar(255)), "+
+                                                                     "                   cast('{1}' as varchar(255))," +
+                                                                     "                   cast('{2}' as varchar(255)), " +
+                                                                     "                   cast('{3}' as varchar(255)),   " +
+                                                                     "                   cast('{4}' as varchar(255)),   " +
+                                                                     "                   cast({5}   as integer),     " +
+                                                                     "                   cast('{6}' as varchar(255)))", 
+                                                                     player.Name.Trim(), player.Shoots, player.Height, player.Weight, 
+                                                                     player.BirthDate, player.EliteID, player.Photo);
 
                                     NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
                                     try
                                     {
                                         int result = SqlCommand.ExecuteNonQuery();
                                     }
-                                    catch(Exception)
+                                    catch (Exception)
                                     {
                                         log_view.Items.Add("Ошибка: не удалось обновить игрока " + player.Name);
                                     }
@@ -307,23 +293,9 @@ namespace EliteProspectParser
                                 if (ConnectionResult)
                                 {
                                     //Обновление записей в таблице Players
-                                    string updateSQL = string.Format(" insert into Rosters(ro_position, ro_jersey, ro_team, ro_player) "+
-                                                                     " select "+
-                                                                     "   pos, jersey, "+
-                                                                     /*"  coalesce( "+
-	                                                                 "           (select "+
-	                                                                 "             ro_team as old_Team "+
-	                                                                 "           from Rosters "+
-	                                                                 "           left join Players on pl_EliteID = {2} /*and player_id = ro_player), "+*/
-	                                                                 "           (select team_id from Teams where tm_name = '{3}') "+
-                                                                     //"           ) "+
-                                                                     "   ,player" +
-                                                                     " from ( "+
-                                                                     "      select "+
-                                                                     "        '{0}' as pos, "+
-                                                                     "        '{1}' as jersey, "+
-                                                                     "        (select player_id from Players where pl_EliteID = {2}) as player " +
-                                                                     "      ) q; ", player.Position, player.Number, player.EliteID, player.team.name.Trim());
+                                    string updateSQL = string.Format("select rosters_ins({0}, '{1}', '{2}', '{3}'); ", 
+                                        player.EliteID, player.team.name.Trim(), player.Position, player.Number
+                                        );
 
                                     NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
                                     try
@@ -337,8 +309,6 @@ namespace EliteProspectParser
                                 }
                             }
 
-                            log_view.Items.Add("Обновление игроков прошло успешно!");
-
                             xlTemplate.SaveAs(_appSetttings.paths.Output + @"\Roster.xlsx");
 
 
@@ -346,6 +316,7 @@ namespace EliteProspectParser
                             log_view.Items.Add("Создан файл Roster.csv");
 
                             btn_startPars.Enabled = true;
+                            ListLeague.Enabled = true;
 
                             //Закрываем соединение
                             if(ConnectionResult)
@@ -371,6 +342,7 @@ namespace EliteProspectParser
 
             StartParser();
             btn_startPars.Enabled = false;
+            ListLeague.Enabled = false;
         }
 
         private void Menu_BDSettings_Click(object sender, EventArgs e)

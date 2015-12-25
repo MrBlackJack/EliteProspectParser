@@ -137,7 +137,6 @@ namespace EliteProspectParser
                     {
                         Name = pName,
                         Number = pNumber,
-                        Age = age,
                         BirthDate = pBirthDate,
                         Height = pHeight,
                         Weight = pWeight,
