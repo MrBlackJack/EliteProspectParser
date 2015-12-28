@@ -28,6 +28,8 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm_));
             this.MainMenu = new System.Windows.Forms.MenuStrip();
             this.настройкиToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.Menu_BDSettings = new System.Windows.Forms.ToolStripMenuItem();
@@ -40,6 +42,7 @@
             this.lblStatus = new System.Windows.Forms.Label();
             this.lblCaption = new System.Windows.Forms.Label();
             this.log_view = new System.Windows.Forms.ListBox();
+            this.notify = new System.Windows.Forms.NotifyIcon(this.components);
             this.MainMenu.SuspendLayout();
             this.infoPanel.SuspendLayout();
             this.SuspendLayout();
@@ -163,6 +166,13 @@
             this.log_view.Size = new System.Drawing.Size(973, 586);
             this.log_view.TabIndex = 12;
             // 
+            // notify
+            // 
+            this.notify.Icon = ((System.Drawing.Icon)(resources.GetObject("notify.Icon")));
+            this.notify.Text = "Планировщик";
+            this.notify.Visible = true;
+            this.notify.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.notify_MouseDoubleClick);
+            // 
             // MainForm_
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -171,6 +181,7 @@
             this.Controls.Add(this.log_view);
             this.Controls.Add(this.infoPanel);
             this.Controls.Add(this.MainMenu);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "MainForm_";
             this.Text = "EliteProspectHockey";
             this.MainMenu.ResumeLayout(false);
@@ -196,6 +207,7 @@
         private System.Windows.Forms.ListBox log_view;
         private System.Windows.Forms.Label lblLeagues;
         private System.Windows.Forms.CheckedListBox ListLeague;
+        private System.Windows.Forms.NotifyIcon notify;
 
 
 

@@ -35,12 +35,32 @@ namespace EliteProspectParser
             //Загружаем сохранненые настройки
             _appSetttings.Load();
 
+            //Проверка режима запуска
+            if (_appSetttings.sheduler_enabled)
+            {
+                notify.Text = "Планировщик";
+                notify.Visible = true;
+                this.WindowState = FormWindowState.Minimized;
+                this.ShowInTaskbar = false;
+            }
+            else
+                notify.Text = "Ручной режим";
+
             //Показываем какие лиги были выбраны
             lblLeagues.Text = string.Format("Загружаемые лиги ({0})", (_appSetttings.CheckLeagues.Count > 0 ? 
                 _appSetttings.CheckLeagues.Aggregate((i, j) => i + ";" + j) : ""));
 
             //Запускаем основной метод
             Loading();
+
+            if (_appSetttings.sheduler_enabled)
+            {
+                start = DateTime.Now;
+                log_view.Items.Clear();
+                btn_startPars.Enabled = false;
+                ListLeague.Enabled = false;
+                StartParser();
+            }
         }
 
         public void Loading()
@@ -118,7 +138,7 @@ namespace EliteProspectParser
 
             for (int j = 0; j < checkLeagues.Count; j++)
             {
-                group = /*j / cntPart + 1*/1;
+                group = j / cntPart + 1;
                 checkLeagues[j].group = j / cntPart + 1;
                 cntOfGroups++;
             }
@@ -126,29 +146,22 @@ namespace EliteProspectParser
             lblStatus.Text = "0";
             int countOfThreads = group;
 
-            List<Player> listOfPlayear = new List<Player>();
-            Players PlayersObj = new Players(lblStatus, log_view, lblTValue, start);
-            
+            List<Players> PlayersObjs = new List<Players>();
 
             for (int l = 1; l <= group; l++)
             {
-                BackgroundWorker bw = new BackgroundWorker();
+                PlayersObjs.Add(new Players(lblStatus, log_view, lblTValue, start));
 
+                BackgroundWorker bw = new BackgroundWorker();
                 //Задаем тело потока
                 bw.DoWork += (object sender, DoWorkEventArgs e) =>
                 {
                     var bParams = (BackgroundWorkerParams)e.Argument;
-
                     foreach (var ls in checkLeagues)
                     {
                         if (ls.group == bParams.grpNmr && _appSetttings.CheckLeagues.Contains(ls.Name.Trim()))
-                        {
-                            PlayersObj.teams = teams;
-                            listOfPlayear = PlayersObj.getAllPlayer(ls, listOfPlayear);
-                        }
+                            PlayersObjs[bParams.grpNmr - 1].getAllPlayer(ls);
                     }
-
-                    e.Result = listOfPlayear;
                 };
 
                 //Поток завершил свою работу
@@ -162,19 +175,21 @@ namespace EliteProspectParser
                     }
                     else
                     {
-                        listOfPlayear = (List<Player>)e.Result;
-
                         countOfThreads--;
                         if (countOfThreads == 0)
                         {
-                            lblStatus.Text = listOfPlayear.Count.ToString();
+                            int cntOfPlayers = 0;
+                            foreach (var p in PlayersObjs)
+                                cntOfPlayers = cntOfPlayers + p._listOfPlayers.Count;
+
+                            lblStatus.Text = cntOfPlayers.ToString();
 
                             //Записываем файл статистики
                             string pathStat = _appSetttings.paths.Output + @"\stat.txt";
                             File.Delete(pathStat);
                             var stat = new StringBuilder();
-                            stat.AppendLine("Всего игроков загружено :" + lblStatus.Text);
-                            stat.AppendLine("Всего времени прошло :" + lblTValue.Text);
+                            stat.AppendLine("Всего игроков загружено - " + lblStatus.Text);
+                            stat.AppendLine("Всего времени прошло  - " + lblTValue.Text);
                             File.WriteAllText(pathStat, stat.ToString(), Encoding.UTF8);
 
                             //Инициализация класса подключения к базе
@@ -185,38 +200,12 @@ namespace EliteProspectParser
                             {
                                 NpgConn.Open();
                             }
-                            catch(Exception)
+                            catch (Exception)
                             {
                                 ConnectionResult = false;
                                 log_view.Items.Add("Не удалось подключиться к базе!");
                             }
 
-                            if (ConnectionResult)
-                            {
-                                //Обновление записей в таблице League
-                                foreach (League league in checkLeagues)
-                                {
-                                    string updateSQL = string.Format("select leagues_ins('{0}');", league.Name.Trim());
-
-                                    NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
-                                    int result = SqlCommand.ExecuteNonQuery();
-                                }
-
-                                //Обновление записей в таблице Teams
-                                foreach (Team team in PlayersObj.teams)
-                                {
-                                    string updateSQL = string.Format("select Teams_ins('{0}', '{1}');", team.name.Trim(), team.league.Name.Trim());
-                                    NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
-                                    try
-                                    {
-                                        int result = SqlCommand.ExecuteNonQuery();
-                                    }
-                                    catch (Exception)
-                                    {
-                                        log_view.Items.Add("Ошибка: не удалось обновить команду " + team.name.Trim());
-                                    }
-                                }
-                            }
 
                             //Путь к excel файлу
                             File.Delete(_appSetttings.paths.Output + @"\Roster.xlsx");
@@ -231,7 +220,6 @@ namespace EliteProspectParser
 
                             XLWorkbook xlTemplate = new XLWorkbook();
                             var xlWorkSheet = xlTemplate.AddWorksheet("Характеристики игроков");
-
                             xlWorkSheet.Cell("A1").Value = "Name";
                             xlWorkSheet.Cell("B1").Value = "Number";
                             xlWorkSheet.Cell("C1").Value = "Height";
@@ -246,69 +234,109 @@ namespace EliteProspectParser
                             xlWorkSheet.Cell("M1").Value = "EliteID";
 
                             int numCell = 2;
-                            foreach (Player player in listOfPlayear)
+
+                            foreach (Players PlayersObj in PlayersObjs)
                             {
-                                xlWorkSheet.Cell("A" + numCell).Value = player.Name.Trim();
-                                xlWorkSheet.Cell("B" + numCell).Value = player.Number.Trim();
-                                xlWorkSheet.Cell("C" + numCell).Value = player.Height.Trim();
-                                xlWorkSheet.Cell("D" + numCell).Value = player.Weight.Trim();
-                                xlWorkSheet.Cell("E" + numCell).Value = player.BirthDate.Trim();
-                                xlWorkSheet.Cell("G" + numCell).Value = player.Shoots.Trim();
-                                xlWorkSheet.Cell("H" + numCell).Value = player.Position.Trim();
-                                xlWorkSheet.Cell("I" + numCell).Value = player.team.name.Trim();
-                                xlWorkSheet.Cell("J" + numCell).Value = player.team.league.Name.Trim();
-                                xlWorkSheet.Cell("K" + numCell).Value = player.TeamLogo.Trim();
-                                xlWorkSheet.Cell("L" + numCell).Value = player.Photo;
-                                xlWorkSheet.Cell("M" + numCell).Value = player.EliteID;
-                                numCell++;
-
-                                csv.AppendLine(player.ToString());
-                                File.WriteAllText(_appSetttings.paths.Output + @"\Roster.csv", csv.ToString(), Encoding.UTF8);
-
                                 if (ConnectionResult)
                                 {
-                                    //Обновление записей в таблице Players
-                                    string updateSQL = string.Format("select players_ins(cast('{0}' as varchar(255)), "+
-                                                                     "                   cast('{1}' as varchar(255))," +
-                                                                     "                   cast('{2}' as varchar(255)), " +
-                                                                     "                   cast('{3}' as varchar(255)),   " +
-                                                                     "                   cast('{4}' as varchar(255)),   " +
-                                                                     "                   cast({5}   as integer),     " +
-                                                                     "                   cast('{6}' as varchar(255)))", 
-                                                                     player.Name.Trim(), player.Shoots, player.Height, player.Weight, 
-                                                                     player.BirthDate, player.EliteID, player.Photo);
+                                    //Обновление записей в таблице League
+                                    foreach (League league in PlayersObj._listOfLeague)
+                                    {
+                                        string updateSQL = string.Format("select leagues_ins('{0}');", league.Name.Trim());
 
-                                    NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
-                                    try
-                                    {
-                                        int result = SqlCommand.ExecuteNonQuery();
+                                        NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
+                                        try
+                                        {
+                                            int result = SqlCommand.ExecuteNonQuery();
+                                        }
+                                        catch (Exception)
+                                        {
+                                            log_view.Items.Add("Ошибка: не удалось обновить лигу : " + league.Name.Trim());
+                                        }
                                     }
-                                    catch (Exception)
+
+                                    //Обновление записей в таблице Teams
+                                    foreach (Team team in PlayersObj._listOfTeams)
                                     {
-                                        log_view.Items.Add("Ошибка: не удалось обновить игрока " + player.Name);
+                                        string updateSQL = string.Format("select Teams_ins('{0}', '{1}');", team.name.Trim(), team.league.Name.Trim());
+                                        NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
+                                        try
+                                        {
+                                            int result = SqlCommand.ExecuteNonQuery();
+                                        }
+                                        catch (Exception)
+                                        {
+                                            log_view.Items.Add("Ошибка: не удалось обновить команду " + team.name.Trim());
+                                        }
                                     }
                                 }
 
-                                //Обновление составов
-                                if (ConnectionResult)
-                                {
-                                    //Обновление записей в таблице Players
-                                    string updateSQL = string.Format("select rosters_ins({0}, '{1}', '{2}', '{3}'); ", 
-                                        player.EliteID, player.team.name.Trim(), player.Position, player.Number
-                                        );
 
-                                    NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
-                                    try
+                                foreach (Player player in PlayersObj._listOfPlayers)
+                                {
+                                    xlWorkSheet.Cell("A" + numCell).Value = player.Name.Trim();
+                                    xlWorkSheet.Cell("B" + numCell).Value = player.Number.Trim();
+                                    xlWorkSheet.Cell("C" + numCell).Value = player.Height.Trim();
+                                    xlWorkSheet.Cell("D" + numCell).Value = player.Weight.Trim();
+                                    xlWorkSheet.Cell("E" + numCell).Value = player.BirthDate.Trim();
+                                    xlWorkSheet.Cell("G" + numCell).Value = player.Shoots.Trim();
+                                    xlWorkSheet.Cell("H" + numCell).Value = player.Position.Trim();
+                                    xlWorkSheet.Cell("I" + numCell).Value = player.team.name.Trim();
+                                    xlWorkSheet.Cell("J" + numCell).Value = player.team.league.Name.Trim();
+                                    xlWorkSheet.Cell("K" + numCell).Value = player.TeamLogo.Trim();
+                                    xlWorkSheet.Cell("L" + numCell).Value = player.Photo;
+                                    xlWorkSheet.Cell("M" + numCell).Value = player.EliteID;
+                                    numCell++;
+
+                                    csv.AppendLine(player.ToString());
+
+                                    if (ConnectionResult)
                                     {
-                                        int result = SqlCommand.ExecuteNonQuery();
+                                        //Обновление записей в таблице Players
+                                        string updateSQL = string.Format("select players_ins(cast('{0}' as varchar(255)), " +
+                                                                         "                   cast('{1}' as varchar(255))," +
+                                                                         "                   cast('{2}' as varchar(255)), " +
+                                                                         "                   cast('{3}' as varchar(255)),   " +
+                                                                         "                   cast('{4}' as varchar(255)),   " +
+                                                                         "                   cast({5}   as integer),     " +
+                                                                         "                   cast('{6}' as varchar(255)))",
+                                                                         player.Name.Trim(), player.Shoots, (player.Height == "-" ? "0":player.Height),
+                                                                         (player.Weight == "-" ? "0" : player.Weight),
+                                                                         player.BirthDate, player.EliteID, player.Photo);
+
+                                        NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
+                                        try
+                                        {
+                                            int result = SqlCommand.ExecuteNonQuery();
+                                        }
+                                        catch (Exception)
+                                        {
+                                            log_view.Items.Add("Ошибка: не удалось обновить игрока " + player.Name);
+                                        }
                                     }
-                                    catch (Exception)
+
+                                    //Обновление составов
+                                    if (ConnectionResult)
                                     {
-                                        log_view.Items.Add("Ошибка: не удалось обновить игрока " + player.Name);
+                                        //Обновление записей в таблице Players
+                                        string updateSQL = string.Format("select rosters_ins({0}, '{1}', '{2}', '{3}'); ",
+                                            player.EliteID, player.team.name.Trim(), player.Position, player.Number
+                                            );
+
+                                        NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
+                                        try
+                                        {
+                                            int result = SqlCommand.ExecuteNonQuery();
+                                        }
+                                        catch (Exception)
+                                        {
+                                            log_view.Items.Add("Ошибка: не удалось обновить игрока " + player.Name);
+                                        }
                                     }
                                 }
                             }
 
+                            File.WriteAllText(_appSetttings.paths.Output + @"\Roster.csv", csv.ToString(), Encoding.UTF8);
                             xlTemplate.SaveAs(_appSetttings.paths.Output + @"\Roster.xlsx");
 
 
@@ -319,7 +347,7 @@ namespace EliteProspectParser
                             ListLeague.Enabled = true;
 
                             //Закрываем соединение
-                            if(ConnectionResult)
+                            if (ConnectionResult)
                                 NpgConn.Close();
                         }
 
@@ -327,6 +355,9 @@ namespace EliteProspectParser
 
                     int visibleItems = log_view.ClientSize.Height / log_view.ItemHeight;
                     log_view.TopIndex = Math.Max(log_view.Items.Count - visibleItems + 1, 0);
+
+                    if (_appSetttings.sheduler_enabled)
+                        this.Close();
                 };
                 var parameters = new BackgroundWorkerParams();
                 parameters.grpNmr = l;
@@ -339,10 +370,9 @@ namespace EliteProspectParser
         {
             start = DateTime.Now;
             log_view.Items.Clear();
-
-            StartParser();
             btn_startPars.Enabled = false;
             ListLeague.Enabled = false;
+            StartParser();
         }
 
         private void Menu_BDSettings_Click(object sender, EventArgs e)
@@ -367,6 +397,12 @@ namespace EliteProspectParser
 
             lblLeagues.Text = string.Format("Загружаемые лиги ({0})", _appSetttings.CheckLeagues.Aggregate((i, j) => i + ";" + j));
         }
+
+        private void notify_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            this.WindowState = FormWindowState.Normal;
+        }
+
     }
 }
 

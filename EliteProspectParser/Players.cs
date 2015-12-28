@@ -30,8 +30,10 @@ namespace EliteProspectParser
             start = _start;
         }
 
-        public List<Player> getAllPlayer(League league, List<Player> _listOfPlayers)
+        public void getAllPlayer(League league)
         {
+            _listOfLeague.Add(league);
+
             string mainPage = "http://www.eliteprospects.com/";
             string url = "http://www.eliteprospects.com/" + league.href;
 
@@ -50,19 +52,19 @@ namespace EliteProspectParser
                 if (log.InvokeRequired) log.Invoke(new Action<string>((s) => log.Items.Add(s)), logStr);
                 else log.Items.Add(logStr);
 
-                return _listOfPlayers;
+                return;
             }
 
             var teamsNodes = hDoc.DocumentNode.SelectNodes("//table[@class = 'tableborder']/tr/td/a[contains(@href, 'team.php?team=')]");
-            if (teamsNodes == null) return _listOfPlayers;
+            if (teamsNodes == null) return;
 
             foreach (var t in teamsNodes)
             {
-                if (teams.Count > 1)
+                if (_listOfTeams.Count > 1)
                 {
                     try
                     {
-                        var isDuplicates = teams.First(c => c.name == t.InnerText);
+                        var isDuplicates = _listOfTeams.First(c => c.name == t.InnerText);
                         if ((isDuplicates as Team) != null)
                             break;
                     }
@@ -71,7 +73,7 @@ namespace EliteProspectParser
                     }
                 };
 
-                teams.Add(new Team
+                _listOfTeams.Add(new Team
                 {
                     name = t.InnerText.Trim(),
                     href = t.Attributes["href"].Value,
@@ -79,7 +81,7 @@ namespace EliteProspectParser
                 });
             }
 
-            foreach (var t in teams)
+            foreach (var t in _listOfTeams)
             {
                 string urlTeam = "http://www.eliteprospects.com/" + t.href;
 
@@ -94,7 +96,7 @@ namespace EliteProspectParser
                     if (log.InvokeRequired) log.Invoke(new Action<string>((s) => log.Items.Add(s)), logStr);
                     else log.Items.Add(logStr);
 
-                    return _listOfPlayers;
+                    return;
                 }
 
                 //Загружаем лого команды
@@ -170,13 +172,11 @@ namespace EliteProspectParser
                         else log.Items.Add(logStr);
                     }
                 }
-                //Для теста
-                return _listOfPlayers;
             }
-
-            return _listOfPlayers;
         }
 
-        public List<Team> teams { get; set; }
+        public List<Team> _listOfTeams = new List<Team>();
+        public List<Player> _listOfPlayers = new List<Player>();
+        public List<League> _listOfLeague = new List<League>();
     }
 }

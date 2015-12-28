@@ -22,9 +22,45 @@ namespace EliteProspectParser
         private string _password = "";
         private XmlDocument xDoc = null;
         private string xmlpath = Application.StartupPath + @"\Settings.xml";
+        private string setPath = Application.StartupPath + @"\Settings.txt";
+        private StringBuilder settings = new StringBuilder();
 
         public AppSettings()
         {
+            if (File.Exists(setPath))
+            {
+                foreach (string set in File.ReadAllLines(setPath))
+                {
+                    string[] paramValue = set.Split('=');
+                    switch (paramValue[0])
+                    {
+                        case "sheduler_enabled":
+                            sheduler_enabled = Convert.ToBoolean(paramValue[1]);
+                            break;
+                        case "CheckLeagues":
+                            _checkLeagues = new List<string>((paramValue[1]).Split(';'));
+                            break;
+                        case "Server":
+                            _server = paramValue[1];
+                            break;
+                        case "Port":
+                            _port = Convert.ToInt16(paramValue[1]);
+                            break;
+                        case "UserName":
+                            _userName = paramValue[1];
+                            break;
+                        case "Password":
+                            _password = paramValue[1];
+                            break;
+                        case "DBName":
+                            _dbname = paramValue[1];
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+
             xDoc = new XmlDocument();
             if (File.Exists(xmlpath))
             {
@@ -41,10 +77,16 @@ namespace EliteProspectParser
 
                 xDoc.Save(xmlpath);
             }
+
+            if (File.Exists(Application.StartupPath + "/Scheduler.txt"))
+                sheduler_enabled = Convert.ToBoolean(File.ReadAllText(Application.StartupPath + "/Scheduler.txt").Split('=')[1]);
         }
 
         [Browsable(false)]
         public readonly Paths paths = new Paths();
+        
+        [Browsable(false)]
+        public readonly bool sheduler_enabled = false;
 
         [Browsable(false)]
         public string ConnectionString
@@ -120,6 +162,14 @@ namespace EliteProspectParser
                 XmlNode lNode = xDoc.SelectSingleNode("Root/Leagues");
                 _checkLeagues = new List<string>(lNode.Attributes["Value"].Value.Split(';'));
             }
+
+            settings.AppendLine(string.Format("Server={0}", _server));
+            settings.AppendLine(string.Format("Port={0}", _port));
+            settings.AppendLine(string.Format("DBName={0}", _dbname));
+            settings.AppendLine(string.Format("UserName={0}", _userName));
+            settings.AppendLine(string.Format("Password={0}", _password));
+
+            File.WriteAllText(setPath, settings.ToString(), Encoding.UTF8);
         }
 
         public void Save()
