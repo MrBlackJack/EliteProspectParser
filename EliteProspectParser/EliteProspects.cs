@@ -15,14 +15,14 @@ using ClosedXML.Excel;
 
 namespace EliteProspectParser
 {
-    public class Players
+    public class EliteProspects
     {
         private Label lblStatus = null;
         private ListBox log = null;
         private Label lblTValue = null;
         private DateTime start;
 
-        public Players(Label _status, ListBox _log, Label _lblTValue, DateTime _start)
+        public EliteProspects(Label _status, ListBox _log, Label _lblTValue, DateTime _start)
         {
             lblStatus = _status;
             lblTValue = _lblTValue;
@@ -30,7 +30,11 @@ namespace EliteProspectParser
             start = _start;
         }
 
-        public void getAllPlayer(League league)
+        public List<Team> _listOfTeams = new List<Team>();
+        public List<Player> _listOfPlayers = new List<Player>();
+        public List<League> _listOfLeague = new List<League>();
+
+        public void getPlayers(League league)
         {
             _listOfLeague.Add(league);
 
@@ -56,6 +60,7 @@ namespace EliteProspectParser
             }
 
             var teamsNodes = hDoc.DocumentNode.SelectNodes("//table[@class = 'tableborder']/tr/td/a[contains(@href, 'team.php?team=')]");
+
             if (teamsNodes == null) return;
 
             foreach (var t in teamsNodes)
@@ -76,7 +81,7 @@ namespace EliteProspectParser
                 _listOfTeams.Add(new Team
                 {
                     name = t.InnerText.Trim(),
-                    href = t.Attributes["href"].Value,
+                    href = t.Attributes["href"].Value.Substring(0, t.Attributes["href"].Value.IndexOf("&year")),
                     league = league
                 });
             }
@@ -103,8 +108,12 @@ namespace EliteProspectParser
                 string pathTeams = Application.StartupPath + @"\Output\TeamsLogo";
                 var img = hDocAttrib.DocumentNode.SelectSingleNode("//img[contains(@src, 'http://files.eliteprospects.com/layout/logos/')]");
                 string urlLogo = (img == null ? "" : img.Attributes["src"].Value);
-                if (urlLogo != "")
-                    wb.DownloadFile(urlLogo, pathTeams + @"\" + t.name + ".png");
+
+                t.urlLogo = urlLogo;
+
+                //Загрузка файла
+                /*if (urlLogo != "")
+                    wb.DownloadFile(urlLogo, pathTeams + @"\" + t.name + ".png");*/
 
                 //Получаем всех игроков команды
                 var players = hDocAttrib.DocumentNode.SelectNodes("//tr[@bordercolor='white' and @bgcolor='white']");
@@ -132,8 +141,10 @@ namespace EliteProspectParser
                     string pathPlayers = Application.StartupPath + @"\Output\PlayersLogo";
                     var imgPhoto = hDocPlayer.DocumentNode.SelectSingleNode("//img[contains(@src, 'http://files.eliteprospects.com/layout/players/')]");
                     string urlPhoto = (imgPhoto == null ? "" : imgPhoto.Attributes["src"].Value);
-                    if (urlPhoto != "")
-                        wb.DownloadFile(urlPhoto, pathPlayers + @"\" + pName + ".png");
+                    
+                    //Загрузка файла
+                    /*if (urlPhoto != "")
+                        wb.DownloadFile(urlPhoto, pathPlayers + @"\" + pName + ".png");*/
 
                     _listOfPlayers.Add(new Player()
                     {
@@ -145,7 +156,6 @@ namespace EliteProspectParser
                         Position = pPosition,
                         Shoots = pShoots,
                         team = t,
-                        TeamLogo = urlLogo,
                         Photo = urlPhoto,
                         EliteID = playerHref.Substring(playerHref.IndexOf('=') + 1)
                     });
@@ -156,7 +166,7 @@ namespace EliteProspectParser
                         if (lblStatus.InvokeRequired) lblStatus.Invoke(new Action<string>((s) => lblStatus.Text = s), status);
                         else lblStatus.Text = status;
 
-                        string logStr = string.Format("{0}->{1}->{2}", league.Name.Trim(), t.name.Trim(), pName.Trim());
+                        string logStr = string.Format("{0}->{1}->{2}->{3}", "EliteProspects", league.Name.Trim(), t.name.Trim(), pName.Trim());
                         if (log.InvokeRequired) log.Invoke(new Action<string>((s) => log.Items.Add(s)), logStr);
                         else log.Items.Add(logStr);
 
@@ -174,9 +184,5 @@ namespace EliteProspectParser
                 }
             }
         }
-
-        public List<Team> _listOfTeams = new List<Team>();
-        public List<Player> _listOfPlayers = new List<Player>();
-        public List<League> _listOfLeague = new List<League>();
     }
 }

@@ -20,73 +20,19 @@ namespace EliteProspectParser
         private string _dbname = "";
         private string _userName = "postgres";
         private string _password = "";
-        private XmlDocument xDoc = null;
-        private string xmlpath = Application.StartupPath + @"\Settings.xml";
         private string setPath = Application.StartupPath + @"\Settings.txt";
         private StringBuilder settings = new StringBuilder();
 
         public AppSettings()
         {
-            if (File.Exists(setPath))
-            {
-                foreach (string set in File.ReadAllLines(setPath))
-                {
-                    string[] paramValue = set.Split('=');
-                    switch (paramValue[0])
-                    {
-                        case "sheduler_enabled":
-                            sheduler_enabled = Convert.ToBoolean(paramValue[1]);
-                            break;
-                        case "CheckLeagues":
-                            _checkLeagues = new List<string>((paramValue[1]).Split(';'));
-                            break;
-                        case "Server":
-                            _server = paramValue[1];
-                            break;
-                        case "Port":
-                            _port = Convert.ToInt16(paramValue[1]);
-                            break;
-                        case "UserName":
-                            _userName = paramValue[1];
-                            break;
-                        case "Password":
-                            _password = paramValue[1];
-                            break;
-                        case "DBName":
-                            _dbname = paramValue[1];
-                            break;
-                        default:
-                            break;
-                    }
-                }
-            }
-
-            xDoc = new XmlDocument();
-            if (File.Exists(xmlpath))
-            {
-                xDoc.Load(xmlpath);
-            }
-            else
-            {
-                XmlDeclaration xmlDeclaration = xDoc.CreateXmlDeclaration("1.0", "UTF-8", null);
-                XmlElement root = xDoc.DocumentElement;
-                xDoc.InsertBefore(xmlDeclaration, root);
-
-                XmlElement RootElement = xDoc.CreateElement(string.Empty, "Root", string.Empty);
-                xDoc.AppendChild(RootElement);
-
-                xDoc.Save(xmlpath);
-            }
-
-            if (File.Exists(Application.StartupPath + "/Scheduler.txt"))
-                sheduler_enabled = Convert.ToBoolean(File.ReadAllText(Application.StartupPath + "/Scheduler.txt").Split('=')[1]);
+            Load();
         }
 
         [Browsable(false)]
         public readonly Paths paths = new Paths();
         
         [Browsable(false)]
-        public readonly bool sheduler_enabled = false;
+        public bool sheduler_enabled = false;
 
         [Browsable(false)]
         public string ConnectionString
@@ -145,76 +91,57 @@ namespace EliteProspectParser
 
         public void Load()
         {
-            //Блок с настройками подключения к БД
-            if (xDoc.SelectSingleNode("Root/BDSettings") != null)
+            if (File.Exists(setPath))
             {
-                XmlNode bdSetting = xDoc.SelectSingleNode("Root/BDSettings");
-                _server = bdSetting.Attributes["Server"].Value;
-                _port = Convert.ToInt16(bdSetting.Attributes["Port"].Value);
-                _dbname = bdSetting.Attributes["DBName"].Value;
-                _userName = bdSetting.Attributes["UserName"].Value;
-                _password = bdSetting.Attributes["Password"].Value;
+                foreach (string set in File.ReadAllLines(setPath))
+                {
+                    string[] paramValue = set.Split('=');
+                    switch (paramValue[0])
+                    {
+                        case "sheduler_enabled":
+                            sheduler_enabled = Convert.ToBoolean(paramValue[1]);
+                            break;
+                        case "CheckLeagues":
+                            _checkLeagues = new List<string>((paramValue[1]).Split(';'));
+                            break;
+                        case "Server":
+                            _server = paramValue[1];
+                            break;
+                        case "Port":
+                            _port = Convert.ToInt16(paramValue[1]);
+                            break;
+                        case "UserName":
+                            _userName = paramValue[1];
+                            break;
+                        case "Password":
+                            _password = paramValue[1];
+                            break;
+                        case "DBName":
+                            _dbname = paramValue[1];
+                            break;
+                        default:
+                            break;
+                    }
+                }
             }
-
-            //Блок с настройками лиг
-            if (xDoc.SelectSingleNode("Root/Leagues") != null)
-            {
-                XmlNode lNode = xDoc.SelectSingleNode("Root/Leagues");
-                _checkLeagues = new List<string>(lNode.Attributes["Value"].Value.Split(';'));
-            }
-
-            settings.AppendLine(string.Format("Server={0}", _server));
-            settings.AppendLine(string.Format("Port={0}", _port));
-            settings.AppendLine(string.Format("DBName={0}", _dbname));
-            settings.AppendLine(string.Format("UserName={0}", _userName));
-            settings.AppendLine(string.Format("Password={0}", _password));
-
-            File.WriteAllText(setPath, settings.ToString(), Encoding.UTF8);
         }
 
         public void Save()
         {
 
-            //Сохранение настроек БД
-            if (xDoc.SelectSingleNode("Root/BDSettings") == null)
-            {
-                XmlElement bdElement = xDoc.CreateElement("BDSettings");
-                xDoc.SelectSingleNode("Root").AppendChild(bdElement);
+            //Сохранение настроек
+            settings.AppendLine(string.Format("Server={0}", _server));
+            settings.AppendLine(string.Format("Port={0}", _port));
+            settings.AppendLine(string.Format("DBName={0}", _dbname));
+            settings.AppendLine(string.Format("UserName={0}", _userName));
+            settings.AppendLine(string.Format("Password={0}", _password));
+            settings.AppendLine(string.Format("sheduler_enabled={0}", sheduler_enabled));
+            settings.AppendLine(string.Format("CheckLeagues={0}",_checkLeagues.Aggregate((i, j) => i + ";" + j)));
 
-                bdElement.SetAttribute("Server", _server);
-                bdElement.SetAttribute("Port", _port.ToString());
-                bdElement.SetAttribute("DBName", _dbname);
-                bdElement.SetAttribute("UserName", _userName);
-                bdElement.SetAttribute("Password", _password);
-            }
-            else
-            {
-                XmlNode bdElement = xDoc.SelectSingleNode("Root/BDSettings");
+            File.Delete(setPath);
+            File.WriteAllText(setPath, settings.ToString(), Encoding.UTF8);
 
-                (bdElement as XmlElement).SetAttribute("Server", _server);
-                (bdElement as XmlElement).SetAttribute("Port", _port.ToString());
-                (bdElement as XmlElement).SetAttribute("DBName", _dbname);
-                (bdElement as XmlElement).SetAttribute("UserName", _userName);
-                (bdElement as XmlElement).SetAttribute("Password", _password);
-
-                xDoc.Save(xmlpath);
-            }
-
-            //Сохранение настройки лиг
-            if (_checkLeagues.Count > 0)
-            {
-                XmlElement leagueElement = null;
-                if (xDoc.SelectSingleNode("Root/Leagues") == null)
-                {
-                    leagueElement = xDoc.CreateElement("Leagues");
-                    xDoc.SelectSingleNode("Root").AppendChild(leagueElement);
-                }
-                else leagueElement = (xDoc.SelectSingleNode("Root/Leagues") as XmlElement);
-
-                leagueElement.SetAttribute("Value", _checkLeagues.Aggregate((i, j) => i + ";" + j));
-            }
-
-            xDoc.Save(xmlpath);
+            settings.Clear();
         }
     }
 

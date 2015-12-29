@@ -22,6 +22,8 @@ namespace EliteProspectParser
         private List<League> leagues = new List<League>();
         private List<Team> teams = new List<Team>();
         private List<string> parts = new List<string>();
+        int countOfThreads = 0;
+        int countOfThreadsK = 0;
 
         private DateTime start;
 
@@ -59,13 +61,15 @@ namespace EliteProspectParser
                 log_view.Items.Clear();
                 btn_startPars.Enabled = false;
                 ListLeague.Enabled = false;
-                StartParser();
+                StartEliteParser();
+                StartKHLParser();
             }
         }
 
         public void Loading()
         {
-            string url = @"http://www.eliteprospects.com/league_central.php#na";
+            string url =@"http://www.eliteprospects.com/league_central.php#na";
+            
             WebClient wb = new WebClient();
             wb.Encoding = Encoding.GetEncoding("ISO-8859-1");
 
@@ -107,9 +111,9 @@ namespace EliteProspectParser
             leagues.Sort(delegate(League l1, League l2) { return l1.Name.CompareTo(l2.Name); });
 
             ListLeague.BeginUpdate();
-            (ListLeague as ListBox).DataSource = leagues;
+            (ListLeague as ListBox).DataSource    = leagues;
             (ListLeague as ListBox).DisplayMember = "Name";
-            (ListLeague as ListBox).ValueMember = "Name";
+            (ListLeague as ListBox).ValueMember   = "Name";
             ListLeague.EndUpdate();
 
             for (int j = 0; j < ListLeague.Items.Count - 1; j++)
@@ -125,7 +129,125 @@ namespace EliteProspectParser
             public int grpNmr;
         }
 
-        public void StartParser()
+        #region KHL
+        public void StartKHLParser()
+        {
+            string url = "http://www.khl.ru/standings/";
+
+            WebClient wb = new WebClient();
+            wb.Encoding = Encoding.UTF8;
+            HtmlAgilityPack.HtmlDocument hDoc = new HtmlAgilityPack.HtmlDocument();
+
+            hDoc.LoadHtml(wb.DownloadString(url.Trim()));
+
+            KHL KHLObj = new KHL(lblStatus, log_view, lblTValue, start);
+
+            string[] parts = new string[] {"c_west","c_east"};
+
+            KHLObj.getTeams(parts, hDoc);
+
+            countOfThreadsK = KHLObj._listOfTeams.Count;
+
+            foreach (Team team in KHLObj._listOfTeams)
+            {
+                BackgroundWorker bw = new BackgroundWorker();
+                //Задаем тело потока
+                bw.DoWork += (object sender, DoWorkEventArgs e) =>
+                {
+                    KHLObj.getPlayers(team);
+                };
+
+                //Поток завершил свою работу
+                bw.RunWorkerCompleted += (object sender, RunWorkerCompletedEventArgs e) =>
+                {
+                    if (e.Error != null)
+                    {
+                    }
+                    else if (e.Cancelled)
+                    {
+                    }
+                    else
+                    {
+                        countOfThreadsK--;
+                        if (countOfThreadsK == 0)
+                        {
+                            //Инициализация класса подключения к базе
+                            NpgsqlConnection NpgConn = new Npgsql.NpgsqlConnection(_appSetttings.ConnectionString);
+                            bool ConnectionResult = true;
+
+                            try
+                            {
+                                NpgConn.Open();
+                            }
+                            catch (Exception)
+                            {
+                                ConnectionResult = false;
+                                log_view.Items.Add("Не удалось подключиться к базе!");
+                            }
+
+                            if (ConnectionResult)
+                            {
+                                foreach (Team t in KHLObj._listOfTeams)
+                                {
+                                    string updateSQL = string.Format("select teamskhl_ins('{0}', '{1}', '{2}', '{3}');",
+                                                              t.name.Trim(), t.nameRus.Trim(), "KHL", t.urlLogo.Trim());
+
+                                    NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
+                                    try
+                                    {
+                                        int result = SqlCommand.ExecuteNonQuery();
+                                    }
+                                    catch (Exception)
+                                    {
+                                        log_view.Items.Add("Ошибка: не удалось обновить команду " + t.name.Trim());
+                                    }
+                                }
+
+
+                                foreach (Player player in KHLObj._listOfPlayers)
+                                {
+                                    //Обновление записей в таблице playerskhl
+                                    string updateSQL = string.Format("select playerskhl_ins(cast('{0}' as varchar(255)), " +
+                                                                     "                      cast('{1}' as varchar(255))," +
+                                                                     "                      cast('{2}' as varchar(255)), " +
+                                                                     "                      cast('{3}' as varchar(255)),   " +
+                                                                     "                      cast('{4}' as varchar(255)),   " +
+                                                                     "                      cast( {5}  as varchar(255)),     " +
+                                                                     "                      cast('{6}' as varchar(255)))",
+                                                                     player.Name.Trim(), 
+                                                                     player.NameRus.Trim(), 
+                                                                     player.Shoots, 
+                                                                     (player.Height == "-" ? "0" : player.Height),
+                                                                     (player.Weight == "-" ? "0" : player.Weight),
+                                                                     player.BirthDate, player.Photo);
+
+                                    NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
+                                    try
+                                    {
+                                        int result = SqlCommand.ExecuteNonQuery();
+                                    }
+                                    catch (Exception)
+                                    {
+                                        log_view.Items.Add("Ошибка: не удалось обновить игрока " + player.Name);
+                                    }
+                                }
+                            }
+                            //Закрываем соединение
+                            if (ConnectionResult)
+                                NpgConn.Close();
+                        }
+                    }
+                };
+
+
+                bw.RunWorkerAsync();
+            }
+        }
+        #endregion
+
+
+        #region EliteProspects
+        public void StartEliteParser()
         {
             List<League> checkLeagues = new List<League>();
             foreach (League l in leagues)
@@ -144,13 +266,13 @@ namespace EliteProspectParser
             }
 
             lblStatus.Text = "0";
-            int countOfThreads = group;
+            countOfThreads = group;
 
-            List<Players> PlayersObjs = new List<Players>();
+            List<EliteProspects> EliteProspectsObjs = new List<EliteProspects>();
 
             for (int l = 1; l <= group; l++)
             {
-                PlayersObjs.Add(new Players(lblStatus, log_view, lblTValue, start));
+                EliteProspectsObjs.Add(new EliteProspects(lblStatus, log_view, lblTValue, start));
 
                 BackgroundWorker bw = new BackgroundWorker();
                 //Задаем тело потока
@@ -160,7 +282,7 @@ namespace EliteProspectParser
                     foreach (var ls in checkLeagues)
                     {
                         if (ls.group == bParams.grpNmr && _appSetttings.CheckLeagues.Contains(ls.Name.Trim()))
-                            PlayersObjs[bParams.grpNmr - 1].getAllPlayer(ls);
+                            EliteProspectsObjs[bParams.grpNmr - 1].getPlayers(ls);
                     }
                 };
 
@@ -178,11 +300,13 @@ namespace EliteProspectParser
                         countOfThreads--;
                         if (countOfThreads == 0)
                         {
+                            /*
                             int cntOfPlayers = 0;
-                            foreach (var p in PlayersObjs)
+                            foreach (var p in EliteProspectsObjs)
                                 cntOfPlayers = cntOfPlayers + p._listOfPlayers.Count;
 
                             lblStatus.Text = cntOfPlayers.ToString();
+                             */
 
                             //Записываем файл статистики
                             string pathStat = _appSetttings.paths.Output + @"\stat.txt";
@@ -215,7 +339,7 @@ namespace EliteProspectParser
 
                             //Шапка csv файла
                             var csv = new StringBuilder();
-                            csv.AppendLine("Name;Number;Height;Weight;BirthDate;Shoots;Position;Team;League;TeamLogo;Photo");
+                            csv.AppendLine("Name;Number;Height;Weight;BirthDate;Shoots;Position;Team;League;Photo");
 
 
                             XLWorkbook xlTemplate = new XLWorkbook();
@@ -229,13 +353,12 @@ namespace EliteProspectParser
                             xlWorkSheet.Cell("H1").Value = "Position";
                             xlWorkSheet.Cell("I1").Value = "Team";
                             xlWorkSheet.Cell("J1").Value = "League";
-                            xlWorkSheet.Cell("K1").Value = "TeamLogo";
                             xlWorkSheet.Cell("L1").Value = "Photo";
                             xlWorkSheet.Cell("M1").Value = "EliteID";
 
                             int numCell = 2;
 
-                            foreach (Players PlayersObj in PlayersObjs)
+                            foreach (EliteProspects PlayersObj in EliteProspectsObjs)
                             {
                                 if (ConnectionResult)
                                 {
@@ -258,7 +381,9 @@ namespace EliteProspectParser
                                     //Обновление записей в таблице Teams
                                     foreach (Team team in PlayersObj._listOfTeams)
                                     {
-                                        string updateSQL = string.Format("select Teams_ins('{0}', '{1}');", team.name.Trim(), team.league.Name.Trim());
+                                        string updateSQL = string.Format("select Teams_ins('{0}', '{1}', '{2}');",
+                                            team.name.Trim(), team.league.Name.Trim(), team.urlLogo.Trim());
+
                                         NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
                                         try
                                         {
@@ -283,7 +408,6 @@ namespace EliteProspectParser
                                     xlWorkSheet.Cell("H" + numCell).Value = player.Position.Trim();
                                     xlWorkSheet.Cell("I" + numCell).Value = player.team.name.Trim();
                                     xlWorkSheet.Cell("J" + numCell).Value = player.team.league.Name.Trim();
-                                    xlWorkSheet.Cell("K" + numCell).Value = player.TeamLogo.Trim();
                                     xlWorkSheet.Cell("L" + numCell).Value = player.Photo;
                                     xlWorkSheet.Cell("M" + numCell).Value = player.EliteID;
                                     numCell++;
@@ -298,9 +422,9 @@ namespace EliteProspectParser
                                                                          "                   cast('{2}' as varchar(255)), " +
                                                                          "                   cast('{3}' as varchar(255)),   " +
                                                                          "                   cast('{4}' as varchar(255)),   " +
-                                                                         "                   cast({5}   as integer),     " +
+                                                                         "                   cast( {5}  as integer),     " +
                                                                          "                   cast('{6}' as varchar(255)))",
-                                                                         player.Name.Trim(), player.Shoots, (player.Height == "-" ? "0":player.Height),
+                                                                         player.Name.Trim(), player.Shoots, (player.Height == "-" ? "0" : player.Height),
                                                                          (player.Weight == "-" ? "0" : player.Weight),
                                                                          player.BirthDate, player.EliteID, player.Photo);
 
@@ -319,8 +443,8 @@ namespace EliteProspectParser
                                     if (ConnectionResult)
                                     {
                                         //Обновление записей в таблице Players
-                                        string updateSQL = string.Format("select rosters_ins({0}, '{1}', '{2}', '{3}'); ",
-                                            player.EliteID, player.team.name.Trim(), player.Position, player.Number
+                                        string updateSQL = string.Format("select rosters_ins({0}, '{1}', '{2}', '{3}', '{4}'); ",
+                                            player.EliteID, player.team.name.Trim(), player.team.league.Name.Trim(), player.Position, player.Number
                                             );
 
                                         NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
@@ -350,13 +474,13 @@ namespace EliteProspectParser
                             if (ConnectionResult)
                                 NpgConn.Close();
                         }
-
                     }
 
                     int visibleItems = log_view.ClientSize.Height / log_view.ItemHeight;
                     log_view.TopIndex = Math.Max(log_view.Items.Count - visibleItems + 1, 0);
 
-                    if (_appSetttings.sheduler_enabled)
+                    //Ждем завершения всех потоков и завершаем приложение
+                    if (_appSetttings.sheduler_enabled && countOfThreads == 0 && countOfThreadsK==0)
                         this.Close();
                 };
                 var parameters = new BackgroundWorkerParams();
@@ -365,6 +489,7 @@ namespace EliteProspectParser
                 bw.RunWorkerAsync(parameters);
             }
         }
+        #endregion
 
         private void btn_startPars_Click(object sender, EventArgs e)
         {
@@ -372,7 +497,8 @@ namespace EliteProspectParser
             log_view.Items.Clear();
             btn_startPars.Enabled = false;
             ListLeague.Enabled = false;
-            StartParser();
+            StartKHLParser();
+            StartEliteParser();
         }
 
         private void Menu_BDSettings_Click(object sender, EventArgs e)
