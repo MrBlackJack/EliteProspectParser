@@ -212,7 +212,7 @@ namespace EliteProspectParser
                                                                      "                      cast('{2}' as varchar(255)), " +
                                                                      "                      cast('{3}' as varchar(255)),   " +
                                                                      "                      cast('{4}' as varchar(255)),   " +
-                                                                     "                      cast( {5}  as varchar(255)),     " +
+                                                                     "                      cast('{5}' as varchar(255)),     " +
                                                                      "                      cast('{6}' as varchar(255)))",
                                                                      player.Name.Trim(), 
                                                                      player.NameRus.Trim(), 
