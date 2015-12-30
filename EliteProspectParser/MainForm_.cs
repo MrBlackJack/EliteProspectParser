@@ -28,6 +28,7 @@ namespace EliteProspectParser
         private DateTime start;
 
         private AppSettings _appSetttings = new AppSettings();
+        private ComparePlayers compare = new ComparePlayers();
 
         public MainForm_()
         {
@@ -62,7 +63,7 @@ namespace EliteProspectParser
                 btn_startPars.Enabled = false;
                 ListLeague.Enabled = false;
                 StartEliteParser();
-                StartKHLParser();
+                StartKHLParser();                
             }
         }
 
@@ -122,7 +123,6 @@ namespace EliteProspectParser
                     ListLeague.SetItemChecked(j, true);
 			}
         }
-
 
         struct BackgroundWorkerParams
         {
@@ -235,6 +235,10 @@ namespace EliteProspectParser
                             //Закрываем соединение
                             if (ConnectionResult)
                                 NpgConn.Close();
+                            
+                            compare.khl = KHLObj;
+                            if (countOfThreads == 0 && countOfThreadsK == 0)
+                                compare.Comparee();
                         }
                     }
                 };
@@ -244,7 +248,6 @@ namespace EliteProspectParser
             }
         }
         #endregion
-
 
         #region EliteProspects
         public void StartEliteParser()
@@ -275,6 +278,7 @@ namespace EliteProspectParser
                 EliteProspectsObjs.Add(new EliteProspects(lblStatus, log_view, lblTValue, start));
 
                 BackgroundWorker bw = new BackgroundWorker();
+
                 //Задаем тело потока
                 bw.DoWork += (object sender, DoWorkEventArgs e) =>
                 {
@@ -473,6 +477,10 @@ namespace EliteProspectParser
                             //Закрываем соединение
                             if (ConnectionResult)
                                 NpgConn.Close();
+
+                            compare.elite = EliteProspectsObjs;
+                            if (countOfThreads == 0 && countOfThreadsK == 0)
+                                compare.Comparee();
                         }
                     }
 
@@ -491,6 +499,7 @@ namespace EliteProspectParser
         }
         #endregion
 
+        #region events
         private void btn_startPars_Click(object sender, EventArgs e)
         {
             start = DateTime.Now;
@@ -529,6 +538,82 @@ namespace EliteProspectParser
             this.WindowState = FormWindowState.Normal;
         }
 
+        #endregion
+    }
+
+    public class ComparePlayers
+    {
+        public KHL khl { get; set; }
+        public List<EliteProspects> elite { get; set; }
+
+        public void Comparee()
+        {
+            string connection = (new AppSettings()).ConnectionString;
+
+            //Инициализация класса подключения к базе
+            NpgsqlConnection NpgConn = new Npgsql.NpgsqlConnection(connection);
+            bool ConnectionResult = true;
+
+            try
+            {
+                NpgConn.Open();
+            }
+            catch (Exception)
+            {
+                ConnectionResult = false;
+            }
+
+            List<Player> linkList = new List<Player>();
+            List<Player> notinList = new List<Player>();
+
+            foreach (Player pkhl in khl._listOfPlayers)
+            {
+                int cntofcompare = 0;
+      
+                foreach (Player pelite in elite[0]._listOfPlayers)
+                {
+                    int cntof = 0;
+                    if (pkhl.BirthDate == pelite.BirthDate)
+                    {
+                        string khlnm = pkhl.Name.ToLower().Replace(" ", "").Trim();
+                        string elitenm = pelite.Name.ToLower().Replace(" ", "").Trim();
+
+                        if (khlnm.Length == elitenm.Length)
+                        {
+                            for (int i = 0; i < khlnm.Length; i++)
+                                if (khlnm[i] == elitenm[i])
+                                    cntof++;
+                        }
+
+                        pkhl.EliteID = (cntof > cntofcompare ? pelite.EliteID : pkhl.EliteID);
+                        cntofcompare = (cntof > cntofcompare ? cntof : cntofcompare);
+                    }
+                }
+
+                if (pkhl.EliteID != null)
+                {
+                    linkList.Add(pkhl);
+                    if (ConnectionResult)
+                    {
+                        string updateSQL = string.Format(" update playerskhl set player_id = ( " +
+                                                            " select player_id from players " +
+                                                            " where elite_id = {0} " +
+                                                            " );", pkhl.EliteID);
+
+                        NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
+                        try
+                        {
+                            int result = SqlCommand.ExecuteNonQuery();
+                        }
+                        catch (Exception)
+                        {
+                        }
+                    }
+                }
+                else
+                    notinList.Add(pkhl);
+            }
+        }
     }
 }
 

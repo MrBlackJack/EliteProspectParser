@@ -54,10 +54,10 @@ namespace EliteProspectParser
                     Team _team = new Team();
                     _team.href = @"http://www.khl.ru" + team.SelectSingleNode("a").Attributes["href"].Value + "team/";
                     _team.urlLogo = url + team.SelectSingleNode("img").Attributes["src"].Value;
-                    _team.name = team.SelectSingleNode("img").Attributes["alt"].Value;
+                    _team.nameRus = team.SelectSingleNode("img").Attributes["alt"].Value;
                     
-                    string nmrus = _team.href.Substring(_team.href.IndexOf("clubs/") + 6);
-                    _team.nameRus = nmrus.Substring(0, nmrus.IndexOf('/')) == "cska" ? "CSKA" : upfirstletter(nmrus.Substring(0, nmrus.IndexOf('/')));
+                    string nm = _team.href.Substring(_team.href.IndexOf("clubs/") + 6);
+                    _team.name = nm.Substring(0, nm.IndexOf('/')) == "cska" ? "CSKA" : upfirstletter(nm.Substring(0, nm.IndexOf('/')));
 
                     _listOfTeams.Add(_team);
                 }
