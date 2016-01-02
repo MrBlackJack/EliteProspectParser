@@ -136,7 +136,8 @@ namespace EliteProspectParser
             settings.AppendLine(string.Format("UserName={0}", _userName));
             settings.AppendLine(string.Format("Password={0}", _password));
             settings.AppendLine(string.Format("sheduler_enabled={0}", sheduler_enabled));
-            settings.AppendLine(string.Format("CheckLeagues={0}",_checkLeagues.Aggregate((i, j) => i + ";" + j)));
+            if (_checkLeagues.Count > 0)
+                settings.AppendLine(string.Format("CheckLeagues={0}",_checkLeagues.Aggregate((i, j) => i + ";" + j)));
 
             File.Delete(setPath);
             File.WriteAllText(setPath, settings.ToString(), Encoding.UTF8);

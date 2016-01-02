@@ -548,6 +548,7 @@ namespace EliteProspectParser
 
         public void Comparee()
         {
+
             string connection = (new AppSettings()).ConnectionString;
 
             //Инициализация класса подключения к базе
@@ -562,9 +563,6 @@ namespace EliteProspectParser
             {
                 ConnectionResult = false;
             }
-
-            List<Player> linkList = new List<Player>();
-            List<Player> notinList = new List<Player>();
 
             foreach (Player pkhl in khl._listOfPlayers)
             {
@@ -592,7 +590,6 @@ namespace EliteProspectParser
 
                 if (pkhl.EliteID != null)
                 {
-                    linkList.Add(pkhl);
                     if (ConnectionResult)
                     {
                         string updateSQL = string.Format(" update playerskhl set player_id = ( " +
@@ -610,8 +607,6 @@ namespace EliteProspectParser
                         }
                     }
                 }
-                else
-                    notinList.Add(pkhl);
             }
         }
     }
