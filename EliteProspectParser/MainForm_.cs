@@ -547,6 +547,22 @@ namespace EliteProspectParser
         public List<EliteProspects> elite { get; set; }
         private ListBox log = null;
 
+        private int compareRes(string khl, string elite)
+        {
+            int cntof = 0;
+            for (int i = 0; i < khl.Length; i++)
+            {
+                if (i < elite.Length)
+                {
+                    if (khl[i] == elite[i])
+                        cntof++;
+                }
+                else
+                    return cntof;
+            }
+                return cntof;
+        }
+
         public void Comparee(ListBox _lb)
         {
             log = _lb;
@@ -571,29 +587,26 @@ namespace EliteProspectParser
             foreach (Player pkhl in khl._listOfPlayers)
             {
                 int cntofcompare = 0;
-      
+                int ishim = 0;
+                if (pkhl.Name == "Daniil Apalkov")
+                {
+                    MessageBox.Show(pkhl.Name);
+                 }
+    
                 foreach (Player pelite in elite[0]._listOfPlayers)
                 {
-                    int cntof = 0;
-                    if (pkhl.BirthDate == pelite.BirthDate)
+                    if (pkhl.BirthDate.Trim() == pelite.BirthDate.Trim())
                     {
-                        string khlnm = pkhl.Name.ToLower().Replace(" ", "").Trim();
-                        string elitenm = pelite.Name.ToLower().Replace(" ", "").Trim();
+                        string[] khlnm = pkhl.Name.ToLower().Trim().Split(' ');
+                        string[] elitenm = pelite.Name.ToLower().Trim().Split(' ');
 
-                        for (int i = 0; i < khlnm.Length; i++)
-                        {
-                            try
-                            {
-                                if (khlnm[i] == elitenm[i])
-                                    cntof++;
-                            }
+                        int cntof = (compareRes(khlnm[0], elitenm[0]) + compareRes(khlnm[1], elitenm[1]));
 
-                            finally
-                            {
-                                pkhl.EliteID = (cntof > cntofcompare ? pelite.EliteID : pkhl.EliteID);
-                                cntofcompare = (cntof > cntofcompare ? cntof : cntofcompare);
-                            }
-                        }
+                        pkhl.EliteID = (cntof > cntofcompare ? pelite.EliteID : pkhl.EliteID);
+                        cntofcompare = (cntof > cntofcompare ? cntof : cntofcompare);
+
+                        if (cntof == (khlnm[0].Length + khlnm[1].Length))
+                            break;
                     }
                 }
 
@@ -603,8 +616,10 @@ namespace EliteProspectParser
                     {
                         string updateSQL = string.Format(" update playerskhl set playerelite_id = ( " +
                                                             " select player_id from players " +
-                                                            " where playerelite_id = {0} " +
-                                                            " );", pkhl.EliteID);
+                                                            " where elite_id = {0} " +
+                                                            " ) "+
+                                                            "where name = '{1}' and cast(dateofbirthday as varchar(20)) = cast('{2}' as varchar(20));"
+                                                            , pkhl.EliteID, pkhl.Name, pkhl.BirthDate);
 
                         NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
                         try

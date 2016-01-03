@@ -112,7 +112,7 @@ namespace EliteProspectParser
                     break;
             }
 
-            return string.Format("{0}-{1}-{2}", dt[2], month, dt[0]);
+            return string.Format("{0}-{1}-{2}", dt[2], month, dt[0].Length > 1?dt[0]:"0"+dt[0]);
         }
 
         public void getPlayers(Team team)
@@ -131,8 +131,12 @@ namespace EliteProspectParser
             {
                 string playerHref = item.Attributes["href"].Value;
 
+
+                WebClient wbAttrib = new WebClient();
+                wbAttrib.Encoding = Encoding.UTF8;
+
                 HtmlAgilityPack.HtmlDocument hDocAttrib = new HtmlAgilityPack.HtmlDocument();
-                hDocAttrib.LoadHtml(wb.DownloadString((mainPage + playerHref).Trim()));
+                hDocAttrib.LoadHtml(wbAttrib.DownloadString((mainPage + playerHref).Trim()));
 
                 string pNameRus = hDocAttrib.DocumentNode.SelectSingleNode("//h3[@class = 'e-player_name']").ChildNodes[0].InnerText;
                 if (pNameRus.IndexOf("№") > 0) pNameRus = pNameRus.Substring(0, pNameRus.IndexOf("№") - pNameRus.Length);
