@@ -230,7 +230,25 @@ namespace EliteProspectParser
                                     {
                                         log_view.Items.Add("Ошибка: не удалось обновить игрока " + player.Name);
                                     }
+
+
+                                    //Обновление записей в таблице Rosters
+                                    updateSQL = string.Format("select rosterskhl_ins('{0}', '{1}', '{2}', '{3}', '{4}', '{5}'); ",
+                                        player.Name, player.BirthDate, player.team.name.Trim(), "KHL", player.Position, player.Number.Replace("№", "")
+                                        );
+
+                                    SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
+                                    try
+                                    {
+                                        int result = SqlCommand.ExecuteNonQuery();
+                                    }
+                                    catch (Exception)
+                                    {
+                                        log_view.Items.Add("Ошибка: не удалось обновить игрока " + player.Name);
+                                    }
                                 }
+
+
                             }
                             //Закрываем соединение
                             if (ConnectionResult)
@@ -446,7 +464,7 @@ namespace EliteProspectParser
                                     //Обновление составов
                                     if (ConnectionResult)
                                     {
-                                        //Обновление записей в таблице Players
+                                        //Обновление записей в таблице Rosters
                                         string updateSQL = string.Format("select rosters_ins({0}, '{1}', '{2}', '{3}', '{4}'); ",
                                             player.EliteID, player.team.name.Trim(), player.team.league.Name.Trim(), player.Position, player.Number
                                             );
@@ -587,16 +605,11 @@ namespace EliteProspectParser
             foreach (Player pkhl in khl._listOfPlayers)
             {
                 int cntofcompare = 0;
-                int ishim = 0;
-                if (pkhl.Name == "Daniil Apalkov")
-                {
-                    MessageBox.Show(pkhl.Name);
-                 }
     
                 foreach (Player pelite in elite[0]._listOfPlayers)
                 {
-                    if (pkhl.BirthDate.Trim() == pelite.BirthDate.Trim())
-                    {
+                    //if (pkhl.BirthDate.Substring(0,7) == pelite.BirthDate.Substring(0,7))
+                    //{
                         string[] khlnm = pkhl.Name.ToLower().Trim().Split(' ');
                         string[] elitenm = pelite.Name.ToLower().Trim().Split(' ');
 
@@ -607,7 +620,7 @@ namespace EliteProspectParser
 
                         if (cntof == (khlnm[0].Length + khlnm[1].Length))
                             break;
-                    }
+                    //}
                 }
 
                 if (pkhl.EliteID != null)
@@ -618,7 +631,7 @@ namespace EliteProspectParser
                                                             " select player_id from players " +
                                                             " where elite_id = {0} " +
                                                             " ) "+
-                                                            "where name = '{1}' and cast(dateofbirthday as varchar(20)) = cast('{2}' as varchar(20));"
+                                                            "where /*playerelite_id is null and*/ name = '{1}' and cast(dateofbirthday as varchar(20)) = cast('{2}' as varchar(20));"
                                                             , pkhl.EliteID, pkhl.Name, pkhl.BirthDate);
 
                         NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);

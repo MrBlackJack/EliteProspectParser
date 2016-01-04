@@ -158,7 +158,7 @@ namespace EliteProspectParser
                 }
                 catch (Exception)
                 {
-                    pNumber = "Отсутствует";
+                    pNumber = "-";
                 }
 
                 var playerInfo = hDocAttrib.DocumentNode.SelectNodes("//table[@class  = 'b-player_data']/tr/td");
@@ -176,7 +176,7 @@ namespace EliteProspectParser
                 }
                 catch (Exception)
                 {
-                    pShoots = "Отсутствует";
+                    pShoots = "-";
                 }
 
 
@@ -206,7 +206,7 @@ namespace EliteProspectParser
                 }
                 catch (Exception)
                 {
-                    pPosition = "Отсутствует";
+                    pPosition = "-";
                 }
 
                 _listOfPlayers.Add(new Player()
