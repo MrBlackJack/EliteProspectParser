@@ -45,6 +45,11 @@ namespace EliteProspectParser
         public List<Team> getTeams(string[] parts, HtmlAgilityPack.HtmlDocument hDoc)
         {
             string url = "http://www.khl.ru";
+
+            WebClient wb = new WebClient();
+            wb.Encoding = Encoding.UTF8;
+            HtmlAgilityPack.HtmlDocument arenadoc = new HtmlAgilityPack.HtmlDocument();
+
             for (int i = 0; i < parts.Length; i++)
             {
                 var teamsNodes = hDoc.DocumentNode.SelectNodes(string.Format("//table[@id = '{0}']/tr/td[a and img]", parts[i]));
@@ -55,9 +60,16 @@ namespace EliteProspectParser
                     _team.href = @"http://www.khl.ru" + team.SelectSingleNode("a").Attributes["href"].Value + "team/";
                     _team.urlLogo = url + team.SelectSingleNode("img").Attributes["src"].Value;
                     _team.nameRus = team.SelectSingleNode("img").Attributes["alt"].Value;
-                    
+
                     string nm = _team.href.Substring(_team.href.IndexOf("clubs/") + 6);
                     _team.name = nm.Substring(0, nm.IndexOf('/')) == "cska" ? "CSKA" : upfirstletter(nm.Substring(0, nm.IndexOf('/')));
+
+
+                    string arenahref = @"http://www.khl.ru" + team.SelectSingleNode("a").Attributes["href"].Value + "arena/";
+                    arenadoc.LoadHtml(wb.DownloadString(arenahref));
+                    var arenanode = arenadoc.DocumentNode.SelectSingleNode("//div[@class = 'b-blocks_cover']/div[@class = 'b-wide_block']/h2");
+                    if (arenanode != null)
+                        _team.arena = arenanode.InnerText.Trim();
 
                     _listOfTeams.Add(_team);
                 }
@@ -112,7 +124,7 @@ namespace EliteProspectParser
                     break;
             }
 
-            return string.Format("{0}-{1}-{2}", dt[2], month, dt[0].Length > 1?dt[0]:"0"+dt[0]);
+            return string.Format("{0}-{1}-{2}", dt[2], month, dt[0].Length > 1 ? dt[0] : "0" + dt[0]);
         }
 
         public void getPlayers(Team team)
@@ -144,7 +156,7 @@ namespace EliteProspectParser
                 /*Загрузка фото игрока*/
                 string pathPlayers = Application.StartupPath + @"\Output\PlayersLogo";
                 string urlPhoto = mainPage + hDocAttrib.DocumentNode.SelectSingleNode("//dt[@class = 'e-details_img']/img").Attributes["src"].Value;
-                
+
                 //Загрузка файла
                 /*WebClient Client = new WebClient();
                 wb.Encoding = Encoding.UTF8;
@@ -229,6 +241,8 @@ namespace EliteProspectParser
                     if (log.InvokeRequired) log.Invoke(new Action<string>((s) => log.Items.Add(s)), logStr);
                     else log.Items.Add(logStr);
 
+                    log.SelectedIndex = log.Items.Count - 1;
+                    log.SelectedIndex = -1;
 
                     string status = (Convert.ToInt16(lblStatus.Text) + 1).ToString();
                     if (lblStatus.InvokeRequired) lblStatus.Invoke(new Action<string>((s) => lblStatus.Text = s), status);

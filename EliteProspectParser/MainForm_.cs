@@ -189,8 +189,8 @@ namespace EliteProspectParser
                             {
                                 foreach (Team t in KHLObj._listOfTeams)
                                 {
-                                    string updateSQL = string.Format("select teamskhl_ins('{0}', '{1}', '{2}', '{3}');",
-                                                              t.name.Trim(), t.nameRus.Trim(), "KHL", t.urlLogo.Trim());
+                                    string updateSQL = string.Format("select teamskhl_ins('{0}', '{1}', '{2}', '{3}', '{4}');",
+                                                              t.name.Trim(), t.nameRus.Trim(), "KHL", t.urlLogo.Trim(), t.arena);
 
                                     NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
                                     try
@@ -580,6 +580,29 @@ namespace EliteProspectParser
                 return cntof;
         }
 
+
+        public int LevenshteinDistance(string strl, string strr)
+        {
+            int diff;
+            int[,] m = new int[strl.Length + 1, strr.Length + 1];
+
+            for (int i = 0; i <= strl.Length; i++) { m[i, 0] = i; }
+            for (int j = 0; j <= strr.Length; j++) { m[0, j] = j; }
+
+            for (int i = 1; i <= strl.Length; i++)
+            {
+                for (int j = 1; j <= strr.Length; j++)
+                {
+                    diff = (strl[i - 1] == strr[j - 1]) ? 0 : 1;
+
+                    m[i, j] = Math.Min(Math.Min(m[i - 1, j] + 1,
+                                             m[i, j - 1] + 1),
+                                             m[i - 1, j - 1] + diff);
+                }
+            }
+            return m[strl.Length, strr.Length];
+        }
+
         public void Comparee(ListBox _lb)
         {
             log = _lb;
@@ -603,25 +626,26 @@ namespace EliteProspectParser
 
             foreach (Player pkhl in khl._listOfPlayers)
             {
-                int cntofcompare = 0;
+                int cntofcompare = -1;
 
                 for (int i = 0; i <= 2; i++)
                 {
-                    foreach (Player pelite in elite[0]._listOfPlayers)
+                    foreach (Player pelite in elite[i]._listOfPlayers)
                     {
-                        //if (pkhl.BirthDate.Substring(0,7) == pelite.BirthDate.Substring(0,7))
-                        //{
-                        string[] khlnm = pkhl.Name.ToLower().Trim().Split(' ');
-                        string[] elitenm = pelite.Name.ToLower().Trim().Split(' ');
+                        //string[] khlnm = pkhl.Name.ToLower().Trim().Split(' ');
+                        //string[] elitenm = pelite.Name.ToLower().Trim().Split(' ');
 
-                        int cntof = (compareRes(khlnm[0], elitenm[0]) + compareRes(khlnm[1], elitenm[1]));
+                        int cntof = LevenshteinDistance(pkhl.Name.ToLower().Trim().Replace(" ", ""), pelite.Name.ToLower().Trim().Replace(" ", ""));
+                        cntof = cntof <= 2 ? cntof : -1;
+                            //(compareRes(khlnm[0], elitenm[0]) + compareRes(khlnm[1], elitenm[1]));
 
                         pkhl.EliteID = (cntof > cntofcompare ? pelite.EliteID : pkhl.EliteID);
                         cntofcompare = (cntof > cntofcompare ? cntof : cntofcompare);
 
+                        /*
                         if (cntof == (khlnm[0].Length + khlnm[1].Length))
                             break;
-                        //}
+                         */
                     }
                 }
 
@@ -635,6 +659,44 @@ namespace EliteProspectParser
                                                             " ) "+
                                                             "where /*playerelite_id is null and*/ name = '{1}' and cast(dateofbirthday as varchar(20)) = cast('{2}' as varchar(20));"
                                                             , pkhl.EliteID, pkhl.Name, pkhl.BirthDate);
+
+                        NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
+                        try
+                        {
+                            int result = SqlCommand.ExecuteNonQuery();
+                        }
+                        catch (Exception)
+                        {
+                        }
+                    }
+                }
+            }
+
+
+            foreach (Team tkhl in khl._listOfTeams)
+            {
+                int cntofcompare = -1;
+                string teamelite = null;
+
+                for (int i = 0; i <= 2; i++)
+                {
+                    foreach (Team telite in elite[i]._listOfTeams)
+                    {
+                        int cntof = LevenshteinDistance(tkhl.name.ToLower().Trim().Replace(" ", ""), telite.name.ToLower().Trim().Replace(" ", ""));
+                        cntof = cntof <= 2 ? cntof : -1;
+                        //(compareRes(khlnm[0], elitenm[0]) + compareRes(khlnm[1], elitenm[1]));
+
+                        teamelite = (cntof > cntofcompare ? telite.name : null);
+                        cntofcompare = (cntof > cntofcompare ? cntof : cntofcompare);
+                    }
+                }
+
+
+                if (teamelite != null)
+                {
+                    if (ConnectionResult)
+                    {
+                        string updateSQL = string.Format("");
 
                         NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
                         try

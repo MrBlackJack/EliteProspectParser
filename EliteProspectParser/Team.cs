@@ -13,5 +13,6 @@ namespace EliteProspectParser
         public League league { get; set; }
         public string href { get; set; }
         public string urlLogo { get; set; }
+        public string arena { get; set; }
     }
 }
