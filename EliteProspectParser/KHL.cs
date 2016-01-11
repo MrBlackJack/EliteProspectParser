@@ -241,9 +241,6 @@ namespace EliteProspectParser
                     if (log.InvokeRequired) log.Invoke(new Action<string>((s) => log.Items.Add(s)), logStr);
                     else log.Items.Add(logStr);
 
-                    log.SelectedIndex = log.Items.Count - 1;
-                    log.SelectedIndex = -1;
-
                     string status = (Convert.ToInt16(lblStatus.Text) + 1).ToString();
                     if (lblStatus.InvokeRequired) lblStatus.Invoke(new Action<string>((s) => lblStatus.Text = s), status);
                     else lblStatus.Text = status;

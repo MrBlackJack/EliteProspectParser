@@ -632,20 +632,11 @@ namespace EliteProspectParser
                 {
                     foreach (Player pelite in elite[i]._listOfPlayers)
                     {
-                        //string[] khlnm = pkhl.Name.ToLower().Trim().Split(' ');
-                        //string[] elitenm = pelite.Name.ToLower().Trim().Split(' ');
-
                         int cntof = LevenshteinDistance(pkhl.Name.ToLower().Trim().Replace(" ", ""), pelite.Name.ToLower().Trim().Replace(" ", ""));
                         cntof = cntof <= 2 ? cntof : -1;
-                            //(compareRes(khlnm[0], elitenm[0]) + compareRes(khlnm[1], elitenm[1]));
 
                         pkhl.EliteID = (cntof > cntofcompare ? pelite.EliteID : pkhl.EliteID);
                         cntofcompare = (cntof > cntofcompare ? cntof : cntofcompare);
-
-                        /*
-                        if (cntof == (khlnm[0].Length + khlnm[1].Length))
-                            break;
-                         */
                     }
                 }
 
@@ -682,9 +673,9 @@ namespace EliteProspectParser
                 {
                     foreach (Team telite in elite[i]._listOfTeams)
                     {
-                        int cntof = LevenshteinDistance(tkhl.name.ToLower().Trim().Replace(" ", ""), telite.name.ToLower().Trim().Replace(" ", ""));
-                        cntof = cntof <= 2 ? cntof : -1;
-                        //(compareRes(khlnm[0], elitenm[0]) + compareRes(khlnm[1], elitenm[1]));
+                        int cntof = compareRes(tkhl.name.ToLower().Trim().Replace(" ", ""), telite.name.ToLower().Trim().Replace(" ", ""));
+                            //LevenshteinDistance(tkhl.name.ToLower().Trim().Replace(" ", ""), telite.name.ToLower().Trim().Replace(" ", ""));
+                            //cntof = cntof <= 2 ? cntof : -1;
 
                         teamelite = (cntof > cntofcompare ? telite.name : null);
                         cntofcompare = (cntof > cntofcompare ? cntof : cntofcompare);
@@ -696,7 +687,7 @@ namespace EliteProspectParser
                 {
                     if (ConnectionResult)
                     {
-                        string updateSQL = string.Format("");
+                        string updateSQL = string.Format("update teamskhl set teamelite_id = (select team_id from teams where name = cast('{0}' as varchar(255)));", teamelite);
 
                         NpgsqlCommand SqlCommand = new NpgsqlCommand(updateSQL, NpgConn);
                         try
