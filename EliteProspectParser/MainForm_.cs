@@ -242,12 +242,11 @@ namespace EliteProspectParser
                                     {
                                         int result = SqlCommand.ExecuteNonQuery();
                                     }
-                                    catch (Exception)
+                                    catch (NpgsqlException sqlexception)
                                     {
                                         log_view.Items.Add("Ошибка: не удалось обновить игрока " + player.Name);
                                     }
                                 }
-
 
                             }
                             //Закрываем соединение
@@ -605,11 +604,13 @@ namespace EliteProspectParser
             foreach (Player pkhl in khl._listOfPlayers)
             {
                 int cntofcompare = 0;
-    
-                foreach (Player pelite in elite[0]._listOfPlayers)
+
+                for (int i = 0; i <= 2; i++)
                 {
-                    //if (pkhl.BirthDate.Substring(0,7) == pelite.BirthDate.Substring(0,7))
-                    //{
+                    foreach (Player pelite in elite[0]._listOfPlayers)
+                    {
+                        //if (pkhl.BirthDate.Substring(0,7) == pelite.BirthDate.Substring(0,7))
+                        //{
                         string[] khlnm = pkhl.Name.ToLower().Trim().Split(' ');
                         string[] elitenm = pelite.Name.ToLower().Trim().Split(' ');
 
@@ -620,7 +621,8 @@ namespace EliteProspectParser
 
                         if (cntof == (khlnm[0].Length + khlnm[1].Length))
                             break;
-                    //}
+                        //}
+                    }
                 }
 
                 if (pkhl.EliteID != null)
